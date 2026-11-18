@@ -27,6 +27,23 @@ jobs:
       - name: Agent-Dateien validieren
         run: node scripts/validate-agents.mjs
 
+  node:
+    name: node
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Abhängigkeiten installieren
+        run: npm ci
+      - name: Typprüfung
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+
   workflows:
     name: workflows
     runs-on: ubuntu-latest
