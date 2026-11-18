@@ -9,5 +9,8 @@ describe("CLI unter Node", () => {
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain("ANTHROPIC_API_KEY ist nicht gesetzt");
     expect(r.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
+    // nur die klare Meldung, kein Node-Stacktrace
+    expect(r.stderr).not.toContain("    at ");
+    expect(r.stderr).not.toContain("Node.js v");
   });
 });
