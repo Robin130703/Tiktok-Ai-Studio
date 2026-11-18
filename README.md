@@ -40,7 +40,7 @@ FFmpeg muss installiert sein (auch im Dummy-Modus), siehe
 
 Ausgaben je Lauf (`<name>` = Ausgabename):
 
-```
+```text
 output/scripts/<name>.json (+ .usage.json)
 output/voices/<name>/   scene-NN.wav, voices.json
 output/media/<name>/    scene-NN.<ext>, media.json
