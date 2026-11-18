@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateScript, type LlmClient } from "./generator.ts";
+import { generateScript, resolveMaxTokens, type LlmClient } from "./generator.ts";
 import { createAnthropicClient } from "./anthropic-client.ts";
 import { validateScript } from "./schema.ts";
 
@@ -85,5 +85,42 @@ describe("Randfälle Generator", () => {
 describe("API-Zugang", () => {
   it("verlangt ANTHROPIC_API_KEY aus der Umgebung", () => {
     expect(() => createAnthropicClient({})).toThrow(/ANTHROPIC_API_KEY/);
+  });
+});
+
+describe("Kostencheck vor Retry mit Standardwerten", () => {
+  const bad = (inputTokens: number, outputTokens: number) => {
+    let n = 0;
+    const seen: number[] = [];
+    const client: LlmClient = {
+      async complete(req) {
+        n += 1;
+        seen.push(req.maxTokens);
+        return { text: "kaputt", inputTokens, outputTokens };
+      },
+    };
+    return { client, calls: () => n, seen };
+  };
+
+  it("wiederholt bei realistischen Token-Zahlen (Worst-Case unter 0,10 USD)", async () => {
+    const t = bad(700, 1000);
+    await expect(generateScript({ client: t.client })).rejects.toThrow();
+    expect(t.calls()).toBe(2);
+  });
+
+  it("verzichtet auf den Retry, wenn der Worst-Case die Standardgrenze überschreiten würde", async () => {
+    // Bisher nur ca. 0,06 USD (< 0,10), der nächste Versuch könnte aber ca. 0,085+ kosten.
+    const t = bad(50_000, 2000);
+    await expect(generateScript({ client: t.client })).rejects.toThrow(/Kostenobergrenze/);
+    expect(t.calls()).toBe(1);
+  });
+
+  it("maxTokens ist konfigurierbar (Option und Env)", async () => {
+    const t = bad(10, 10);
+    await expect(generateScript({ client: t.client, maxTokens: 777 })).rejects.toThrow();
+    expect(t.seen).toEqual([777, 777]);
+    expect(resolveMaxTokens({})).toBe(2000);
+    expect(resolveMaxTokens({ SCRIPT_MAX_TOKENS: "3000" })).toBe(3000);
+    expect(() => resolveMaxTokens({ SCRIPT_MAX_TOKENS: "abc" })).toThrow(/SCRIPT_MAX_TOKENS/);
   });
 });
