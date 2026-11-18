@@ -8,6 +8,20 @@ späterer automatischer Upload auf TikTok.
 Das Agentensystem ist eingerichtet. Die Videoerstellung folgt als Nächstes und wird
 vom Product Owner als Backlog in den Issues geführt.
 
+## Entwicklung
+
+Voraussetzung: Node 24 (siehe `.nvmrc`). Tech-Stack: [docs/tech-stack.md](docs/tech-stack.md).
+
+```sh
+npm ci            # Abhängigkeiten installieren
+npm run typecheck # Typprüfung (tsc --noEmit)
+npm test          # Tests (Vitest)
+```
+
+Ordnerstruktur: Quellcode und Tests (`*.test.ts`) liegen in `src/`, Ausgaben in
+`output/` (nicht eingecheckt). Für API-Keys `.env.example` nach `.env` kopieren und
+Werte lokal eintragen.
+
 ## Agententeam
 
 | Rolle | Aufgabe |
