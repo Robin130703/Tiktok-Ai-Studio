@@ -74,7 +74,7 @@ Ein einziger FFmpeg-Aufruf mit `-filter_complex` (`src/video/ffmpeg.ts`, Funktio
 `buildFfmpegArgs`; reine Funktion, per Test geprüft). Aufruf über den injizierbaren `Runner`
 (`src/video/runner.ts`, `node:child_process` ohne Shell).
 
-**Video je Szene**
+### Video je Szene
 
 - Bild: `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840` füllt das Format
   ohne Verzerrung und ohne Ränder (auch bei nicht-9:16-Quellen), dann
@@ -90,7 +90,7 @@ Ein einziger FFmpeg-Aufruf mit `-filter_complex` (`src/video/ffmpeg.ts`, Funktio
 - Jede Szene endet in `setsar=1,format=yuv420p` mit 30 fps; das verlangt `concat`. Danach
   `concat=n=<k>:v=1:a=0`.
 
-**Untertitel (ASS)**
+### Untertitel (ASS)
 
 `src/video/ass.ts` erzeugt `subtitles.ass` (PlayRes 1080x1920, damit Größen in Pixeln gelten).
 Zeiten: Wort-Zeitstempel aus `voices.json`, verschoben um den Szenenbeginn, je 3 Wörter eine
@@ -105,7 +105,7 @@ und maskiert zuerst `\ ' :`, dann `\ ' [ ] , ;`. `C:\Users\a b\out\subtitles.ass
 `C\\:/Users/a b/out/subtitles.ass` (der Laufwerks-Doppelpunkt wäre sonst ein Optionstrenner).
 Da kein Shell-Aufruf stattfindet, ist keine weitere Shell-Maskierung nötig.
 
-**Ton**
+### Ton
 
 - Sprache je Szene: `aformat=sample_rates=48000:channel_layouts=stereo,apad,atrim=duration=<s>`
   (exakt auf die Szenenlänge, damit Audio und Video deckungsgleich bleiben), dann `concat` (a=1).
