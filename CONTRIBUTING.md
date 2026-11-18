@@ -13,7 +13,7 @@ PO legt Issue an (status:ready)
  -> bei Änderungswünschen: Developer pusht auf denselben Branch
  -> max. 3 Runden, danach Eskalation an den Menschen
  -> CI grün + Reviewer OK + Tester OK -> status:merge-ready
- -> Mensch merged (Squash)
+ -> Tech Lead merged (Squash), bei Eskalation entscheidet der Mensch
 ```
 
 ## Regeln
@@ -23,7 +23,7 @@ PO legt Issue an (status:ready)
 - Commits: [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `test:`).
 - Jeder PR referenziert ein Issue (`Closes #<nr>`) und nutzt das PR-Template.
 - Keine Secrets im Repo.
-- Merge: Squash, nur durch den Menschen.
+- Merge: Squash, nur durch den Tech Lead und nur bei grüner CI plus APPROVED von Reviewer und Tester. Bei Eskalation (3 Runden) entscheidet der Mensch.
 
 ## Agenten lokal starten
 

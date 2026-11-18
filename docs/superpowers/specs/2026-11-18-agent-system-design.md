@@ -44,7 +44,7 @@ Alles auf Branches, nach üblichen Projektstandards.
 - Alle Agenten posten unter dem GitHub-Account Robin130703. Ein Reviewer kann
   einen PR daher nicht formal "approven". Review und Test laufen als Kommentare
   mit klarem Ergebnis ("APPROVED" / "CHANGES REQUESTED"), die Merge-Bedingung ist
-  die grüne CI. Der Merge selbst bleibt beim Menschen, solange nicht anders entschieden.
+  die grüne CI. Der Merge liegt beim Tech Lead (Freigabe durch Robin am 2026-11-18), nur bei grüner CI und doppeltem APPROVED.
 - Der Rechner hat Node 24, aber kein Python. Die CI läuft auf GitHub-Runnern.
 - Das Repo ist leer, `main` braucht einen Initial-Commit, bevor Branches möglich sind.
 - Branch-Schutz auf privaten Repos kann auf dem Free-Plan eingeschränkt sein. Das
@@ -82,8 +82,8 @@ PO legt Issue an (label: status:ready)
  → Reviewer + Tester kommentieren am PR (parallel)
  → bei Änderungswünschen: Developer arbeitet Kommentare ab, pusht auf denselben Branch
  → Schleife, max. 3 Runden, danach Eskalation an den Menschen
- → CI grün + Reviewer OK + Tester OK → Orchestrator meldet "merge-ready"
- → Mensch merged (Squash)
+ → CI grün + Reviewer OK + Tester OK → Orchestrator setzt "merge-ready"
+ → Orchestrator merged (Squash); bei Eskalation entscheidet der Mensch
 ```
 
 ### Repo-Inhalt

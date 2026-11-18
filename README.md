@@ -13,7 +13,7 @@ vom Product Owner als Backlog in den Issues geführt.
 | Rolle | Aufgabe |
 |---|---|
 | Product Owner | Issues und Akzeptanzkriterien |
-| Tech Lead | steuert den Zyklus, meldet merge-ready |
+| Tech Lead | steuert den Zyklus, merged bei grüner CI und doppeltem APPROVED |
 | Developer | implementiert, öffnet PRs, arbeitet Kommentare ab |
 | Reviewer | prüft den Diff |
 | Tester | prüft Akzeptanzkriterien, ergänzt Tests |
