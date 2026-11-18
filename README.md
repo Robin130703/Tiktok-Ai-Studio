@@ -39,4 +39,5 @@ Ablauf in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Design: [docs/superpowers/specs/](docs/superpowers/specs/)
 - Skript-Generator: [docs/script-generator.md](docs/script-generator.md)
+- Videoschnitt (Untertitel, Musik, FFmpeg): [docs/video-assembly.md](docs/video-assembly.md)
 - Pläne: [docs/superpowers/plans/](docs/superpowers/plans/)
