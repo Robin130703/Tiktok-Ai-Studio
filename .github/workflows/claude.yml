@@ -1,0 +1,41 @@
+# Optionaler Claude-Workflow (@claude in Issues und PRs).
+#
+# Standardmäßig AUS. Er läuft nur, wenn
+#   - die Repository-Variable CLAUDE_ENABLED auf "true" steht und
+#   - das Secret ANTHROPIC_API_KEY gesetzt ist.
+# Jeder Lauf verursacht API-Kosten. Hinweis: Kommentare, die mit dem Standard-
+# GITHUB_TOKEN gepostet werden, lösen keine weiteren Workflows aus. Für automatische
+# Ketten (Agent kommentiert -> nächster Agent startet) braucht es ein PAT oder eine GitHub App.
+
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    if: >-
+      vars.CLAUDE_ENABLED == 'true' &&
+      contains(github.event.comment.body, '@claude') &&
+      github.event.comment.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
