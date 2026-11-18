@@ -56,8 +56,20 @@ Sprechanweisung und die Transkriptionssprache.
   bleiben samt Metadaten erhalten (Metadaten werden nach jeder Szene gespeichert).
 - Ein erneuter Lauf erzeugt nur Szenen neu, deren Datei fehlt oder deren Text, Stimme,
   Anweisung oder Sprache sich geändert hat (Hash). Wiederverwendung kostet nichts.
-- `usage` (`generated`, `reused`, `costUsd`) zählt die Kosten des Laufs; bei Erreichen
-  der Obergrenze (0,15 USD, `maxCostUsd`) wird abgebrochen (Grundlage für #10).
+- Schlägt die Transkription einer Szene fehl, ist die TTS-Aufnahme bereits bezahlt. Sie
+  wird deshalb vor der Transkription als `scene-NN.wav` gespeichert und in `voices.json`
+  unter `pending` (Szene, Hash, Dauer, bezahlte TTS-Kosten) vermerkt. Ein erneuter Lauf
+  liest diese Datei, ruft nur die Transkription auf und bezahlt TTS für diese Szene nicht
+  noch einmal. Ändern sich Text, Stimme, Anweisung oder Sprache (Hash), verfällt der
+  Eintrag und die Szene wird neu erzeugt. Nach erfolgreicher Transkription verschwindet
+  `pending`.
+- `usage` (`generated`, `reused`, `costUsd`) zählt die Kosten des Laufs. Die Obergrenze
+  (0,15 USD, `maxCostUsd`) gilt für das ganze Video: vor jeder neuen Szene werden die
+  Kosten dieses Laufs plus die Kosten bereits vorhandener, gültiger Szenen früherer Läufe
+  (`costUsd` in `voices.json`) und bezahlter, noch nicht transkribierter Aufnahmen
+  verglichen; bei Erreichen wird abgebrochen (Grundlage für #10). Eine bereits bezahlte
+  Aufnahme wird auch bei erreichter Grenze noch transkribiert, weil dafür kein TTS-Preis
+  mehr anfällt.
 
 Annahmen (Schätzungen, nicht live verifiziert, Stand 2026-11-18): `gpt-4o-mini-tts`
 ca. 0,60 USD pro 1 Mio. Eingabe-Token (grob 4 Zeichen je Token) plus ca. 0,015 USD pro
