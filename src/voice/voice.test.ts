@@ -164,6 +164,24 @@ describe("generateVoices", () => {
     expect(usage.generated).toBe(2);
   });
 
+  it("verwirft eine pending-Aufnahme, wenn sich der Text der Szene ändert", async () => {
+    const dir = await tmp();
+    const failing = mockClient();
+    failing.transcribe = async () => {
+      throw new Error("429 Limit");
+    };
+    await generateVoices({ client: failing, script, dir }).catch(() => undefined);
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 1 ? { ...s, text: "Ganz neuer Text!" } : s)),
+    };
+    const retry = mockClient();
+    const { meta } = await generateVoices({ client: retry, script: changed, dir });
+    expect(retry.synthCalls[0]!.input).toBe("Ganz neuer Text!");
+    expect(meta.scenes).toHaveLength(3);
+    expect(meta.pending).toBeUndefined();
+  });
+
   it("zählt Kosten früherer Läufe für die Obergrenze mit", async () => {
     const dir = await tmp();
     const first = await generateVoices({ client: mockClient(), script, dir });
