@@ -1,0 +1,10 @@
+extends: relaxed
+
+ignore: |
+  .superpowers/
+  node_modules/
+
+rules:
+  line-length: disable
+  truthy:
+    check-keys: false

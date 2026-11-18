@@ -1,0 +1,22 @@
+name: Bug
+description: Etwas funktioniert nicht
+labels: ["type:bug", "role:po"]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächliches Verhalten
+    validations:
+      required: true
