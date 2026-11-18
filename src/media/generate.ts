@@ -38,7 +38,7 @@ export interface MediaMeta {
 export interface MediaUsage {
   generated: number;
   reused: number;
-  /** Kosten dieses Laufs (geschätzt). */
+  /** Kosten dieses Laufs (geschätzt). Kosten früherer Läufe zählen nur für die Obergrenze. */
   costUsd: number;
 }
 
@@ -107,13 +107,19 @@ export async function generateMedia(
   );
   const usage: MediaUsage = { generated: 0, reused: 0, costUsd: 0 };
   const done: SceneMedia[] = [];
-  const snapshot = (): MediaMeta => ({ version: 1, provider: provider.name, scenes: [...done] });
-
-  for (const scene of script.scenes) {
-    const durationSeconds = durations.get(scene.id);
-    if (durationSeconds === undefined) {
-      throw new MediaError(`Szene ${scene.id}: keine Dauer übergeben`, scene.id, usage);
+  // Szenen, die in diesem Lauf noch nicht bearbeitet wurden, behalten ihren Eintrag aus dem
+  // früheren Lauf: ein Abbruch darf teuer erzeugte spätere Szenen nicht aus media.json löschen.
+  const processed = new Set<number>();
+  const snapshot = (): MediaMeta => {
+    const doneById = new Map(done.map((d) => [d.sceneId, d] as const));
+    const scenes: SceneMedia[] = [];
+    for (const sc of script.scenes) {
+      const entry = processed.has(sc.id) ? doneById.get(sc.id) : previous.get(sc.id);
+      if (entry) scenes.push(entry);
     }
+    return { version: 1, provider: provider.name, scenes };
+  };
+  const hashFor = (scene: Script["scenes"][number], durationSeconds: number) => {
     const { prompt, seed } = buildPrompt(script, scene);
     // Bei Video hängt das Ergebnis von der Dauer ab, bei Bildern nicht.
     const hash = createHash("sha256")
@@ -129,16 +135,39 @@ export async function generateMedia(
       )
       .digest("hex")
       .slice(0, 16);
+    return { hash, prompt, seed };
+  };
+
+  // Kosten früherer Läufe (gültige, wiederverwendbare Szenen) zählen für die Obergrenze mit.
+  let carriedCost = 0;
+  for (const scene of script.scenes) {
+    const d = durations.get(scene.id);
     const old = previous.get(scene.id);
+    if (d !== undefined && old && old.hash === hashFor(scene, d).hash) {
+      if (await exists(path.join(dir, old.file))) carriedCost += old.costUsd;
+    }
+  }
+
+  for (const scene of script.scenes) {
+    const durationSeconds = durations.get(scene.id);
+    if (durationSeconds === undefined) {
+      throw new MediaError(`Szene ${scene.id}: keine Dauer übergeben`, scene.id, usage);
+    }
+    const { hash, prompt, seed } = hashFor(scene, durationSeconds);
+    const old = previous.get(scene.id);
+    processed.add(scene.id);
     if (old && old.hash === hash && (await exists(path.join(dir, old.file)))) {
       done.push({ ...old, durationSeconds });
       usage.reused += 1;
       continue;
     }
-    if (usage.costUsd >= maxCost) {
+    // Prüfung vor der Erzeugung: auch das nächste Bild darf die Obergrenze nicht überschreiten.
+    const estimate = provider.estimatedCostUsd ?? 0;
+    const spent = carriedCost + usage.costUsd;
+    if (spent >= maxCost || spent + estimate > maxCost) {
       await writeMeta(metaFile, snapshot());
       throw new MediaError(
-        `Kostenobergrenze ${maxCost} USD erreicht, Abbruch vor Szene ${scene.id}`,
+        `Kostenobergrenze ${maxCost} USD (inkl. früherer Läufe) würde überschritten, Abbruch vor Szene ${scene.id}`,
         scene.id,
         usage,
       );

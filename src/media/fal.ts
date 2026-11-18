@@ -28,9 +28,11 @@ export function createFalProvider(
   client: FalClient,
   usdPerMegapixel: number = DEFAULT_USD_PER_MEGAPIXEL,
 ): MediaProvider {
+  const costUsd = ((IMAGE_WIDTH * IMAGE_HEIGHT) / 1_000_000) * usdPerMegapixel;
   return {
     name: "fal",
     type: "image",
+    estimatedCostUsd: costUsd,
     async generate(req: MediaRequest): Promise<MediaResult> {
       const out = await client.generateImage({
         model: FAL_MODEL,
@@ -47,7 +49,7 @@ export function createFalProvider(
         data: out.data,
         type: "image",
         extension: out.extension,
-        costUsd: ((IMAGE_WIDTH * IMAGE_HEIGHT) / 1_000_000) * usdPerMegapixel,
+        costUsd,
       };
     },
   };

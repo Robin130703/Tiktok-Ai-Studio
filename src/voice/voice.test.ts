@@ -135,6 +135,75 @@ describe("generateVoices", () => {
     expect(meta.scenes).toHaveLength(3);
   });
 
+  it("zahlt TTS nach fehlgeschlagener Transkription nicht noch einmal", async () => {
+    const dir = await tmp();
+    const failing = mockClient();
+    let n = 0;
+    failing.transcribe = async () => {
+      n += 1;
+      if (n === 2) throw new Error("429 Limit");
+      failing.transcribeCalls += 1;
+      return { words: [{ word: "Test", start: 0, end: 0.5 }] };
+    };
+    const err = await generateVoices({ client: failing, script, dir }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(VoiceError);
+    expect((err as VoiceError).sceneId).toBe(2);
+    expect(failing.synthCalls).toHaveLength(2); // Szene 2 wurde bezahlt
+    const saved = JSON.parse(await readFile(path.join(dir, "voices.json"), "utf8"));
+    expect(saved.scenes).toHaveLength(1);
+    expect(saved.pending).toHaveLength(1);
+    expect(saved.pending[0].sceneId).toBe(2);
+
+    const retry = mockClient();
+    const { meta, usage } = await generateVoices({ client: retry, script, dir });
+    expect(retry.synthCalls).toHaveLength(1); // nur Szene 3, nicht Szene 2
+    expect(retry.synthCalls[0]!.input).toBe("Doch.");
+    expect(retry.transcribeCalls).toBe(2);
+    expect(meta.scenes.map((s) => s.sceneId)).toEqual([1, 2, 3]);
+    expect(meta.pending).toBeUndefined();
+    expect(usage.generated).toBe(2);
+  });
+
+  it("verwirft eine pending-Aufnahme, wenn sich der Text der Szene ändert", async () => {
+    const dir = await tmp();
+    const failing = mockClient();
+    failing.transcribe = async () => {
+      throw new Error("429 Limit");
+    };
+    await generateVoices({ client: failing, script, dir }).catch(() => undefined);
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 1 ? { ...s, text: "Ganz neuer Text!" } : s)),
+    };
+    const retry = mockClient();
+    const { meta } = await generateVoices({ client: retry, script: changed, dir });
+    expect(retry.synthCalls[0]!.input).toBe("Ganz neuer Text!");
+    expect(meta.scenes).toHaveLength(3);
+    expect(meta.pending).toBeUndefined();
+  });
+
+  it("zählt Kosten früherer Läufe für die Obergrenze mit", async () => {
+    const dir = await tmp();
+    const first = await generateVoices({ client: mockClient(), script, dir });
+    const spent = first.meta.scenes.reduce((s, x) => s + x.costUsd, 0);
+    expect(spent).toBeGreaterThan(0);
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 3 ? { ...s, text: "Doch, doch!" } : s)),
+    };
+    // Dieser Lauf hat noch nichts ausgegeben, die früheren Szenen allein erreichen aber die Grenze.
+    const client = mockClient();
+    const err = await generateVoices({
+      client,
+      script: changed,
+      dir,
+      maxCostUsd: spent * 0.5,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(VoiceError);
+    expect((err as VoiceError).message).toMatch(/Kostenobergrenze.*früherer Läufe/);
+    expect(client.synthCalls).toHaveLength(0);
+  });
+
   it("bricht bei Überschreiten der Kostenobergrenze ab", async () => {
     const dir = await tmp();
     await expect(

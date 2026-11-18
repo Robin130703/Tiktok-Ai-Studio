@@ -51,11 +51,23 @@ export interface SceneAudio {
   hash: string;
 }
 
+/** Bezahlte Sprachaufnahme, deren Transkription noch fehlt (Wiederaufnahme ohne neues TTS). */
+export interface PendingAudio {
+  sceneId: number;
+  hash: string;
+  file: string;
+  durationSeconds: number;
+  /** Bereits bezahlte TTS-Kosten (USD, geschätzt). */
+  ttsCostUsd: number;
+}
+
 export interface VoiceMeta {
   version: 1;
   language: Language;
   scenes: SceneAudio[];
   totalDurationSeconds: number;
+  /** Nur vorhanden, wenn eine Transkription fehlgeschlagen ist. */
+  pending?: PendingAudio[];
 }
 
 export interface VoiceUsage {
@@ -63,7 +75,7 @@ export interface VoiceUsage {
   generated: number;
   /** Aus vorhandenen Dateien übernommene Szenen (kostenlos). */
   reused: number;
-  /** Kosten dieses Laufs (geschätzt). */
+  /** Kosten dieses Laufs (geschätzt). Kosten früherer Läufe zählen nur für die Obergrenze. */
   costUsd: number;
 }
 
@@ -137,9 +149,9 @@ export async function generateVoices(
   const voices = assignVoices(script.characters, opts.voices, language);
   await mkdir(dir, { recursive: true });
   const metaFile = path.join(dir, "voices.json");
-  const previous = new Map(
-    ((await readMeta(metaFile))?.scenes ?? []).map((s) => [s.sceneId, s] as const),
-  );
+  const prevMeta = await readMeta(metaFile);
+  const previous = new Map((prevMeta?.scenes ?? []).map((s) => [s.sceneId, s] as const));
+  const pending = new Map((prevMeta?.pending ?? []).map((p) => [p.sceneId, p] as const));
   const usage: VoiceUsage = { generated: 0, reused: 0, costUsd: 0 };
   const done: SceneAudio[] = [];
   const snapshot = (): VoiceMeta => ({
@@ -147,7 +159,30 @@ export async function generateVoices(
     language,
     scenes: [...done],
     totalDurationSeconds: done.reduce((s, x) => s + x.durationSeconds, 0),
+    ...(pending.size > 0 ? { pending: [...pending.values()] } : {}),
   });
+  const hashFor = (text: string, speaker: string): string | undefined => {
+    const v = voices.get(speaker);
+    return v ? hashOf([text, v.voice, v.instructions, language, TTS_MODEL]) : undefined;
+  };
+
+  // Kosten früherer Läufe (gültige Szenen und bezahlte, noch nicht transkribierte Aufnahmen)
+  // zählen für die Obergrenze mit: sie gehören zum selben Video.
+  let carriedCost = 0;
+  for (const scene of script.scenes) {
+    const hash = hashFor(scene.text, scene.speaker);
+    const old = previous.get(scene.id);
+    const pend = pending.get(scene.id);
+    if (hash && old && old.hash === hash && (await exists(path.join(dir, old.file)))) {
+      carriedCost += old.costUsd;
+    } else if (hash && pend && pend.hash === hash && (await exists(path.join(dir, pend.file)))) {
+      carriedCost += pend.ttsCostUsd;
+    }
+  }
+  for (const [id, p] of [...pending]) {
+    const scene = script.scenes.find((x) => x.id === id);
+    if (!scene || p.hash !== hashFor(scene.text, scene.speaker)) pending.delete(id);
+  }
 
   for (const scene of script.scenes) {
     const v = voices.get(scene.speaker);
@@ -162,31 +197,48 @@ export async function generateVoices(
       usage.reused += 1;
       continue;
     }
-    if (usage.costUsd >= maxCost) {
+    const pend = pending.get(scene.id);
+    const resumable = pend && pend.hash === hash && (await exists(path.join(dir, pend.file)));
+    if (!resumable && carriedCost + usage.costUsd >= maxCost) {
       await writeMeta(metaFile, snapshot());
       throw new VoiceError(
-        `Kostenobergrenze ${maxCost} USD erreicht, Abbruch vor Szene ${scene.id}`,
+        `Kostenobergrenze ${maxCost} USD erreicht (inkl. früherer Läufe), Abbruch vor Szene ${scene.id}`,
         scene.id,
         usage,
       );
     }
     try {
-      const audio = await client.synthesize({
-        model: TTS_MODEL,
-        voice: v.voice,
-        instructions: v.instructions,
-        input: scene.text,
-      });
-      const durationSeconds = wavDurationSeconds(audio);
-      await writeFile(path.join(dir, file), audio);
-      const ttsCost =
-        ((scene.text.length / 4) * pricing.ttsInputPerMTok) / 1_000_000 +
-        (durationSeconds / 60) * pricing.ttsAudioPerMinute;
+      let audio: Buffer;
+      let durationSeconds: number;
+      let ttsCost: number;
+      if (resumable) {
+        // Bereits bezahlte Aufnahme einer früheren, an der Transkription gescheiterten Runde.
+        audio = await readFile(path.join(dir, pend.file));
+        durationSeconds = pend.durationSeconds;
+        ttsCost = pend.ttsCostUsd;
+        carriedCost -= pend.ttsCostUsd; // zählt ab jetzt über usage.costUsd
+      } else {
+        audio = await client.synthesize({
+          model: TTS_MODEL,
+          voice: v.voice,
+          instructions: v.instructions,
+          input: scene.text,
+        });
+        durationSeconds = wavDurationSeconds(audio);
+        await writeFile(path.join(dir, file), audio);
+        ttsCost =
+          ((scene.text.length / 4) * pricing.ttsInputPerMTok) / 1_000_000 +
+          (durationSeconds / 60) * pricing.ttsAudioPerMinute;
+        // Aufnahme vor der Transkription festhalten: schlägt sie fehl, geht TTS nicht verloren.
+        pending.set(scene.id, { sceneId: scene.id, hash, file, durationSeconds, ttsCostUsd: ttsCost });
+        await writeMeta(metaFile, snapshot());
+      }
       usage.costUsd += ttsCost;
       const { words } = await client.transcribe({ model: TRANSCRIBE_MODEL, audio, language });
       const transcribeCost = (durationSeconds / 60) * pricing.transcribePerMinute;
       usage.costUsd += transcribeCost;
       usage.generated += 1;
+      pending.delete(scene.id);
       done.push({
         sceneId: scene.id,
         speaker: scene.speaker,
