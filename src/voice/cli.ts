@@ -3,7 +3,7 @@ import path from "node:path";
 import { loadScript } from "../script/store.ts";
 import { createOpenAiSpeechClient } from "./client.ts";
 import { DEFAULT_VOICE_DIR, generateVoices } from "./generate.ts";
-import { parseLanguage, type VoiceMap } from "./voices.ts";
+import { parseLanguage, parseVoiceMap, type VoiceMap } from "./voices.ts";
 
 interface Args {
   script?: string;
@@ -33,10 +33,10 @@ try {
       "Aufruf: npm run voice -- <skript.json> [--lang de|en] [--voices datei.json] [--out ordner]",
     );
   }
-  const script = await loadScript(args.script);
   const voices: VoiceMap | undefined = args.voices
-    ? (JSON.parse(await readFile(args.voices, "utf8")) as VoiceMap)
+    ? parseVoiceMap(JSON.parse(await readFile(args.voices, "utf8")) as unknown, args.voices)
     : undefined;
+  const script = await loadScript(args.script);
   const language = parseLanguage(args.lang ?? process.env.VOICE_LANGUAGE);
   const dir = args.out ?? path.join(DEFAULT_VOICE_DIR, path.basename(args.script, ".json"));
   const { meta, usage, metaFile } = await generateVoices({ client, script, dir, voices, language });
