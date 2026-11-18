@@ -21,17 +21,18 @@ function slugify(s: string): string {
 
 /**
  * Legt das Skript als `<zeitstempel>-<slug>.json` ab, Nutzung/Kosten daneben als
- * `<...>.usage.json`. Gibt den Pfad der Skriptdatei zurück.
+ * `<...>.usage.json`. Mit `name` heißt die Datei `<name>.json`. Gibt den Pfad der Skriptdatei zurück.
  */
 export async function saveScript(
   script: Script,
   usage: Usage,
   dir: string = DEFAULT_SCRIPT_DIR,
   now: Date = new Date(),
+  name?: string,
 ): Promise<string> {
   await mkdir(dir, { recursive: true });
   const stamp = now.toISOString().replace(/[:.]/g, "-");
-  const base = path.join(dir, `${stamp}-${slugify(script.title)}`);
+  const base = path.join(dir, name ?? `${stamp}-${slugify(script.title)}`);
   await writeFile(`${base}.json`, JSON.stringify(script, null, 2) + "\n", "utf8");
   await writeFile(`${base}.usage.json`, JSON.stringify(usage, null, 2) + "\n", "utf8");
   return `${base}.json`;
