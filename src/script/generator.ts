@@ -36,6 +36,8 @@ export const DEFAULT_MODEL = "claude-haiku-4-5";
 export const DEFAULT_PRICING: Pricing = { inputPerMTok: 1, outputPerMTok: 5 };
 export const DEFAULT_MAX_ATTEMPTS = 2; // 1 Versuch + 1 Wiederholung
 export const DEFAULT_MAX_COST_USD = 0.1; // Obergrenze laut docs/tech-stack.md
+/** ~10 Szenen und ~150 gesprochene Wörter ergeben ca. 1 000 Ausgabe-Token JSON; 2x Puffer. */
+export const DEFAULT_MAX_TOKENS = 2000;
 
 export class ScriptGenerationError extends Error {
   readonly usage: Usage;
@@ -57,8 +59,23 @@ export interface GenerateOptions {
   model?: string;
   pricing?: Pricing;
   maxAttempts?: number;
-  /** Verhindert weitere Versuche, wenn die Kosten diese Grenze erreicht haben. */
+  /**
+   * Verhindert weitere Versuche, wenn die bisherigen Kosten plus die geschätzten
+   * Höchstkosten des nächsten Versuchs diese Grenze überschreiten würden.
+   */
   maxCostUsd?: number;
+  /** Ausgabe-Token-Limit je Versuch. Standard: Env SCRIPT_MAX_TOKENS, sonst DEFAULT_MAX_TOKENS. */
+  maxTokens?: number;
+}
+
+export function resolveMaxTokens(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.SCRIPT_MAX_TOKENS?.trim();
+  if (!raw) return DEFAULT_MAX_TOKENS;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`SCRIPT_MAX_TOKENS "${raw}" ist ungültig (erwartet: positive ganze Zahl)`);
+  }
+  return n;
 }
 
 export function resolveModel(env: NodeJS.ProcessEnv = process.env): string {
@@ -111,24 +128,38 @@ export async function generateScript(
   const pricing = opts.pricing ?? DEFAULT_PRICING;
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const maxCost = opts.maxCostUsd ?? DEFAULT_MAX_COST_USD;
+  const maxTokens = opts.maxTokens ?? resolveMaxTokens();
   const usage: Usage = { model, attempts: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
   const messages: { role: "user" | "assistant"; content: string }[] = [
     { role: "user", content: userPrompt(opts.topic) },
   ];
   let errors: string[] = [];
+  let lastInput = 0;
+  let lastOutput = 0;
 
   while (usage.attempts < maxAttempts) {
-    if (usage.attempts > 0 && usage.costUsd >= maxCost) {
-      errors = [...errors, `Kostenobergrenze ${maxCost} USD erreicht`];
-      break;
+    if (usage.attempts > 0) {
+      // Worst-Case des nächsten Versuchs: Eingabe = letzte Eingabe + letzte Antwort
+      // (der Verlauf wächst darum), Ausgabe = volles maxTokens.
+      const projected =
+        usage.costUsd + computeCostUsd(lastInput + lastOutput, maxTokens, pricing);
+      if (projected > maxCost) {
+        errors = [
+          ...errors,
+          `Kostenobergrenze ${maxCost} USD würde beim nächsten Versuch überschritten (bisher ${usage.costUsd.toFixed(4)}, geschätzt ${projected.toFixed(4)} USD)`,
+        ];
+        break;
+      }
     }
     const res = await opts.client.complete({
       model,
       system: SYSTEM_PROMPT,
       messages,
-      maxTokens: 2000,
+      maxTokens,
     });
     usage.attempts += 1;
+    lastInput = res.inputTokens;
+    lastOutput = res.outputTokens;
     usage.inputTokens += res.inputTokens;
     usage.outputTokens += res.outputTokens;
     usage.costUsd = computeCostUsd(usage.inputTokens, usage.outputTokens, pricing);

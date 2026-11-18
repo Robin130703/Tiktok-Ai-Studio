@@ -33,7 +33,7 @@ npm run make-video -- --dummy           # Probelauf ohne Keys, Netzwerk und Kost
 
 Der Befehl führt Skript, Stimmen, Bilder und Schnitt nacheinander aus, meldet jeden Schritt
 und nennt am Ende den Pfad zu `video.mp4`. Optionen: `[Thema]`, `--name <ausgabename>`
-(Standard: Zeitstempel und Titel des Skripts), `--dummy`, `--no-music`, `--music <datei>`.
+(Standard: Zeitstempel und Titel des Skripts), `--dummy`, `--no-music`, `--music <datei>`. `--name` und `--music` brauchen einen Wert, sonst Fehlermeldung und Exit-Code 1.
 Fehlen Variablen, bricht er sofort mit einer Meldung ab, die die Namen nennt (keine Werte).
 FFmpeg muss installiert sein (auch im Dummy-Modus), siehe
 [docs/video-assembly.md](docs/video-assembly.md): `winget install --id Gyan.FFmpeg -e`.

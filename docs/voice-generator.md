@@ -33,6 +33,10 @@ Schlüssel ist `characters[].name`. Konfiguration per JSON-Datei (`--voices`):
   "Erna": { "voice": "nova" } }
 ```
 
+Die Datei wird vor jedem API-Aufruf geprüft: ein ungültiger Stimmenname (oder eine
+falsche Struktur) führt zu einer Meldung mit Figur, Wert und den erlaubten Namen
+(`alloy, ash, ballad, cedar, coral, echo, fable, marin, nova, onyx, sage, shimmer, verse`).
+
 Ohne Eintrag gilt die Standardzuordnung: Figuren erhalten der Reihe nach (Reihenfolge
 in `characters`) `onyx`, `nova`, `fable`, `echo`, wobei bereits konfigurierte Stimmen
 übersprungen werden; so klingen bis zu 4 Figuren verschieden und gleich bleibend.

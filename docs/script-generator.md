@@ -57,8 +57,12 @@ Audiodatei.
 Jede LLM-Ausgabe wird als JSON geparst und gegen das Schema inkl. Dauer geprüft. Bei
 Fehler gibt es genau eine Wiederholung (Fehlerliste wird dem LLM rückgemeldet), danach
 wirft der Generator `ScriptGenerationError` mit Fehlerliste und bis dahin angefallener
-Nutzung. Eine Wiederholung unterbleibt, wenn die Kosten bereits die Obergrenze
-(0,10 USD) erreicht haben.
+Nutzung. Eine Wiederholung unterbleibt, wenn die bisherigen Kosten plus die
+geschätzten Höchstkosten des nächsten Versuchs die Obergrenze (0,10 USD) überschreiten
+würden. Höchstkosten = (letzte Eingabe-Token + letzte Antwort-Token) als Eingabe, da der
+Verlauf wächst, plus volles `maxTokens` als Ausgabe. Mit den Standardwerten (ca. 700 Ein-
+und 1 000 Ausgabe-Token) liegt der Worst-Case bei ca. 0,02 USD, der Retry läuft also
+normal; der Check greift bei ungewöhnlich großen Eingaben oder höherem `maxTokens`.
 
 ## Token und Kosten
 
@@ -78,6 +82,10 @@ Preise vor Produktivbetrieb gegen die Anbieter-Preisseite prüfen.
 |---|---|
 | `ANTHROPIC_API_KEY` | API-Zugang, nur lokale `.env`, nie im Repo |
 | `SCRIPT_MODEL` | optional, Claude-Modell (Standard `claude-haiku-4-5`) |
+| `SCRIPT_MAX_TOKENS` | optional, Ausgabe-Token-Limit je Versuch (Standard 2000; ein Skript hat ca. 1 000 Token, 2000 ist 2x Puffer). Auch als Option `maxTokens` von `generateScript`. Höhere Werte erhöhen den Worst-Case des Kostenchecks. |
+
+`npm run script` gibt bei Fehlern (z. B. fehlender `ANTHROPIC_API_KEY`) nur
+`Fehler: <Meldung>` aus, ohne Stacktrace, Exit-Code 1.
 
 Tests nutzen einen Mock-Client (`LlmClient`), machen keine API-Aufrufe und brauchen
 keinen Schlüssel.

@@ -10,7 +10,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "make-video": "node --env-file-if-exists=.env src/pipeline/cli.ts",
-    "script":"node --env-file-if-exists=.env src/script/cli.ts",
+    "script": "node --env-file-if-exists=.env src/script/cli.ts",
     "voice": "node --env-file-if-exists=.env src/voice/cli.ts",
     "media": "node --env-file-if-exists=.env src/media/cli.ts",
     "video": "node --env-file-if-exists=.env src/video/cli.ts",
