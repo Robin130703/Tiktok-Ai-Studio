@@ -9,6 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "script": "node --env-file-if-exists=.env src/script/cli.ts",
     "test": "vitest run"
   },
   "devDependencies": {

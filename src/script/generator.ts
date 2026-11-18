@@ -1,11 +1,11 @@
-import type { Script } from "./schema.js";
+import type { Script } from "./schema.ts";
 import {
   MAX_DURATION_S,
   MAX_SCENES,
   MIN_DURATION_S,
   MIN_SCENES,
   validateScript,
-} from "./schema.js";
+} from "./schema.ts";
 
 /** Schmale Schnittstelle zum LLM, damit Tests ohne echten API-Aufruf laufen. */
 export interface LlmClient {
@@ -38,12 +38,13 @@ export const DEFAULT_MAX_ATTEMPTS = 2; // 1 Versuch + 1 Wiederholung
 export const DEFAULT_MAX_COST_USD = 0.1; // Obergrenze laut docs/tech-stack.md
 
 export class ScriptGenerationError extends Error {
-  constructor(
-    message: string,
-    public readonly usage: Usage,
-    public readonly errors: string[],
-  ) {
+  readonly usage: Usage;
+  readonly errors: string[];
+
+  constructor(message: string, usage: Usage, errors: string[]) {
     super(message);
+    this.usage = usage;
+    this.errors = errors;
     this.name = "ScriptGenerationError";
   }
 }

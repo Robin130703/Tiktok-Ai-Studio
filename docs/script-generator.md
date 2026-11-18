@@ -7,8 +7,8 @@ Bildquelle (#8) und Zusammenschnitt (#9). Code: `src/script/`.
 ## Benutzung
 
 ```sh
-node --env-file=.env src/script/cli.ts "Streit um den letzten Smoothie"
-node --env-file=.env src/script/cli.ts          # ohne Thema: zufälliges Thema
+npm run script -- "Streit um den letzten Smoothie"
+npm run script --          # ohne Thema: zufälliges Thema
 ```
 
 Die Datei landet in `output/scripts/<zeitstempel>-<slug>.json` (nicht eingecheckt),

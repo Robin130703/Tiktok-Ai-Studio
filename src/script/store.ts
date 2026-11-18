@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Usage } from "./generator.js";
-import type { Script } from "./schema.js";
-import { validateScript } from "./schema.js";
+import type { Usage } from "./generator.ts";
+import type { Script } from "./schema.ts";
+import { validateScript } from "./schema.ts";
 
 export const DEFAULT_SCRIPT_DIR = "output/scripts";
 

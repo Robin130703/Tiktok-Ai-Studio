@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { LlmClient } from "./generator.js";
+import type { LlmClient } from "./generator.ts";
 
 /** Echter Client; liest ANTHROPIC_API_KEY aus der Umgebung (nie aus dem Repo). */
 export function createAnthropicClient(env: NodeJS.ProcessEnv = process.env): LlmClient {

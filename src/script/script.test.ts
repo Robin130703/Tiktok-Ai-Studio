@@ -7,9 +7,9 @@ import {
   generateScript,
   ScriptGenerationError,
   type LlmClient,
-} from "./generator.js";
-import { estimateDurationSeconds, validateScript } from "./schema.js";
-import { loadScript, saveScript } from "./store.js";
+} from "./generator.ts";
+import { estimateDurationSeconds, validateScript } from "./schema.ts";
+import { loadScript, saveScript } from "./store.ts";
 
 /** Baut ein gültiges Skript mit `words` Wörtern verteilt auf `sceneCount` Szenen. */
 function makeScript(words = 150, sceneCount = 10): Record<string, unknown> {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { generateScript, type LlmClient } from "./generator.js";
-import { createAnthropicClient } from "./anthropic-client.js";
-import { validateScript } from "./schema.js";
+import { generateScript, type LlmClient } from "./generator.ts";
+import { createAnthropicClient } from "./anthropic-client.ts";
+import { validateScript } from "./schema.ts";
 
 function base(sceneCount = 10, words = 150): Record<string, unknown> {
   const per = words / sceneCount;
