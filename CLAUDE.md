@@ -13,6 +13,7 @@ Agentensystems, danach die Video-Pipeline.
 - Keine Secrets, keine `.env`, keine API-Keys im Repo.
 - Eine Rolle pro Aufgabe, keine Überschneidung (siehe unten).
 - Unklar oder blockiert: am Issue/PR kommentieren und `status:blocked` setzen, nicht raten.
+- GitHub-Aktionen (Issues, PRs, Kommentare, Labels) laufen immer über den eingeloggten `gh`-Account. Agenten fragen nie nach dem Account.
 
 ## Rollen (`.claude/agents/`)
 
