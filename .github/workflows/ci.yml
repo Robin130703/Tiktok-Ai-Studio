@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agents:
+    name: agents
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Tests für das Validierungsskript
+        run: node --test "scripts/*.test.mjs"
+      - name: Agent-Dateien validieren
+        run: node scripts/validate-agents.mjs
+
+  workflows:
+    name: workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: raven-actions/actionlint@v2
+
+  markdown-yaml:
+    name: markdown-yaml
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Markdown lint
+        run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#.superpowers"
+      - name: YAML lint
+        run: pip install --quiet yamllint && yamllint .

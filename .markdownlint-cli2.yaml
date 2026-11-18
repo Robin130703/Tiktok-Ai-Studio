@@ -1,0 +1,8 @@
+config:
+  MD013: false # Zeilenlänge
+  MD033: false # Inline-HTML (Kommentare in Templates)
+  MD041: false # erste Zeile muss keine Überschrift sein (Templates)
+  MD032: false # Leerzeilen um Listen (Plan-Format)
+  MD060: false # Tabellenstil
+  MD024:
+    siblings_only: true

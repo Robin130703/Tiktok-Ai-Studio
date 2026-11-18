@@ -75,7 +75,7 @@ Alles auf Branches, nach üblichen Projektstandards.
 
 ### Ablauf
 
-```
+```text
 PO legt Issue an (label: status:ready)
  → Orchestrator wählt Issue, setzt status:in-progress
  → Developer: Branch feat/<nr>-<slug>, Commits, PR ("Closes #nr")
