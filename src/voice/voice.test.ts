@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Script } from "../script/schema.ts";
 import { generateVoices, VoiceError, type SpeechClient } from "./generate.ts";
+import { parseArgs } from "./args.ts";
 import { assignVoices, parseLanguage } from "./voices.ts";
 import { wavDurationSeconds } from "./wav.ts";
 
@@ -204,6 +205,41 @@ describe("generateVoices", () => {
     expect(client.synthCalls).toHaveLength(0);
   });
 
+  it("zählt bei Wiederaufnahme nur die Transkription der bereits bezahlten Aufnahme", async () => {
+    const dir = await tmp();
+    const failing = mockClient();
+    failing.transcribe = async () => {
+      throw new Error("429 Limit");
+    };
+    await generateVoices({ client: failing, script, dir }).catch(() => undefined);
+    const paid = JSON.parse(await readFile(path.join(dir, "voices.json"), "utf8")).pending[0];
+    const retry = mockClient();
+    const { usage } = await generateVoices({
+      client: retry,
+      script: { ...script, scenes: [script.scenes[0]!] },
+      dir,
+    });
+    expect(retry.synthCalls).toHaveLength(0);
+    expect(usage.costUsd).toBeCloseTo((paid.durationSeconds / 60) * 0.006, 10);
+  });
+
+  it("behält bei Abbruch die Einträge späterer Szenen", async () => {
+    const dir = await tmp();
+    await generateVoices({ client: mockClient(), script, dir });
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 1 ? { ...s, text: "Neuer Text!" } : s)),
+    };
+    const err = await generateVoices({
+      client: mockClient({ failOnSynth: 1 }),
+      script: changed,
+      dir,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(VoiceError);
+    const saved = JSON.parse(await readFile(path.join(dir, "voices.json"), "utf8"));
+    expect(saved.scenes.map((s: { sceneId: number }) => s.sceneId)).toEqual([2, 3]);
+  });
+
   it("bricht bei Überschreiten der Kostenobergrenze ab", async () => {
     const dir = await tmp();
     await expect(
@@ -220,5 +256,28 @@ describe("CLI unter Node", () => {
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain("OPENAI_API_KEY ist nicht gesetzt");
     expect(r.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
+  });
+});
+
+describe("Voice-CLI-Argumente", () => {
+  it.each(["--voices", "--lang", "--out"])("meldet %s ohne Wert verständlich", (opt) => {
+    expect(() => parseArgs(["skript.json", opt])).toThrow(new RegExp(`${opt} braucht einen Wert`));
+    expect(() => parseArgs([opt, "--lang", "de"])).toThrow(/braucht einen Wert/);
+  });
+  it("liest Optionen mit Wert", () => {
+    expect(parseArgs(["s.json", "--lang", "en", "--out", "o"])).toEqual({
+      script: "s.json",
+      lang: "en",
+      out: "o",
+    });
+  });
+  it("CLI beendet sich mit Fehlercode", () => {
+    const env = { ...process.env, OPENAI_API_KEY: "test" };
+    const r = spawnSync(process.execPath, ["src/voice/cli.ts", "s.json", "--out"], {
+      encoding: "utf8",
+      env,
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("--out braucht einen Wert");
   });
 });
