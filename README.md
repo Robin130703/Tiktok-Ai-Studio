@@ -38,4 +38,5 @@ Ablauf in [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Dokumentation
 
 - Design: [docs/superpowers/specs/](docs/superpowers/specs/)
+- Skript-Generator: [docs/script-generator.md](docs/script-generator.md)
 - Pläne: [docs/superpowers/plans/](docs/superpowers/plans/)

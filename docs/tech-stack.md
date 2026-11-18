@@ -66,6 +66,7 @@ per Konfiguration (z. B. `MEDIA_PROVIDER`) gewählt, ohne Änderung am Schnitt.
 | `ANTHROPIC_API_KEY` | LLM-Skripterzeugung |
 | `OPENAI_API_KEY` | Sprachausgabe und Wort-Transkription |
 | `FAL_KEY` | Bilderzeugung über fal.ai |
+| `SCRIPT_MODEL` | optional, Claude-Modell für das Skript (Standard `claude-haiku-4-5`) |
 | `MEDIA_PROVIDER` | optional, Wahl der Bild-/Clip-Quelle |
 | `FFMPEG_PATH` | optional, Pfad zu FFmpeg |
 | `MAX_COST_PER_VIDEO_USD` | optional, Obergrenze pro Video (Standard 1.00) |
