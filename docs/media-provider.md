@@ -62,8 +62,8 @@ Das Skript hat pro Figur nur `name`, `fruit`, `personality`; pro Szene ist nur
    ähnlicheres Aussehen über Szenen und Läufe.
 
 Grenzen: FLUX schnell kennt keine Referenzbilder, die Ähnlichkeit ist nur eine
-Annäherung. Die Qualität ist stichprobenartig mit echtem Anbieter zu prüfen (in diesem PR
-nicht geschehen, kein Schlüssel vorhanden). Bessere Konsistenz bräuchte ein Modell mit
+Annäherung. Die Qualität ist stichprobenartig mit echtem Anbieter zu prüfen (siehe Abschnitt
+"Stichprobe Figurenkonsistenz", Status: ausstehend). Bessere Konsistenz bräuchte ein Modell mit
 Referenzbild (spätere Entscheidung).
 
 ## Fehler, Moderation, Wiederverwendung, Kosten
@@ -76,9 +76,15 @@ Referenzbild (spätere Entscheidung).
 - Wiederverwendung: Eine Szene wird nur neu erzeugt, wenn Datei oder Eintrag fehlen oder
   sich Anbieter, Typ, Format, Seed oder Prompt (Szene, Figuren) geändert haben (Hash).
   Wiederverwendung kostet nichts.
-- `usage` (`generated`, `reused`, `costUsd`) zählt die Kosten des Laufs; bei Erreichen der
-  Obergrenze (0,60 USD, `maxCostUsd`) wird abgebrochen. Kosten früherer Läufe zählen wie
-  in #7 nicht mit (siehe Sammel-Issue #20 d).
+- `usage` (`generated`, `reused`, `costUsd`) zählt die Kosten des Laufs. Die Obergrenze
+  (0,60 USD, `maxCostUsd`) wird **vor** jeder Erzeugung geprüft: Kosten dieses Laufs plus
+  Kosten gültiger, wiederverwendeter Szenen früherer Läufe plus die Schätzung des Providers
+  für das nächste Bild (`estimatedCostUsd`) dürfen sie nicht überschreiten, sonst Abbruch.
+  Liefert ein Provider keine Schätzung, gilt sie als 0 (Prüfung wie bisher nur auf
+  "bereits erreicht").
+- Bei einem Abbruch behält `media.json` die Einträge noch nicht bearbeiteter, späterer
+  Szenen aus einem früheren Lauf; ein neuer Lauf verwendet sie weiter, statt sie neu zu
+  erzeugen. Der Eintrag der fehlgeschlagenen Szene entfällt (Prompt/Bild ist ungültig).
 
 Annahmen (Schätzungen, nicht live verifiziert, Stand 2026-11-18): FLUX schnell ca.
 0,003 USD pro Megapixel, ein Bild 576x1024 (ca. 0,59 MP) also ca. 0,002 USD; ca. 10 Bilder
@@ -94,3 +100,28 @@ Parameter und Preis vor Produktivbetrieb gegen die Anbieter-Seite prüfen.
 
 Tests nutzen den Dummy-Provider und einen gemockten `FalClient`, machen keine API-Aufrufe
 und brauchen keinen Schlüssel.
+
+## Stichprobe Figurenkonsistenz (fal.ai)
+
+**Status: ausstehend, `FAL_KEY` fehlt.** Die Stichprobe wurde nicht durchgeführt, es gibt
+kein Ergebnis. Für die Prüfung sind ein `FAL_KEY` in der lokalen `.env` und echte
+API-Aufrufe nötig (Kosten ca. 0,02 USD für 10 Bilder, siehe Schätzung oben).
+
+Prüfanleitung:
+
+1. `FAL_KEY` in `.env` setzen (nie einchecken), `MEDIA_PROVIDER` leer lassen oder `fal`.
+2. Ein Skript mit mindestens 2 Figuren und je mindestens 3 Szenen verwenden
+   (`npm run script` oder vorhandene Datei aus `output/scripts/`), dazu die Stimmen
+   (`npm run voice -- <skript.json>`), damit `voices.json` die Dauern liefert.
+3. `npm run media -- <skript.json>` ausführen; Bilder liegen in `output/media/<name>/`.
+4. Je Figur die Bilder nebeneinander ansehen und bewerten: Frucht/Art, Farbe, Gesichtszug
+   und Stil gleichbleibend? Notieren: Anzahl Bilder pro Figur, Anzahl erkennbar
+   konsistenter, auffällige Abweichungen.
+5. Optional Gegenprobe: gleiche Szene mit geändertem Seed erzeugen und vergleichen, um den
+   Einfluss des stabilen Seeds zu sehen.
+6. Ergebnis hier eintragen (Datum, Skript, Anzahl, Bewertung, Entscheidung, ob ein Modell
+   mit Referenzbild nötig ist) und Status auf "durchgeführt" setzen.
+
+| Datum | Skript | Bilder je Figur | Bewertung | Entscheidung |
+|---|---|---|---|---|
+| ausstehend | ausstehend | ausstehend | ausstehend | ausstehend |

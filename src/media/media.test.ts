@@ -126,6 +126,79 @@ describe("Dummy-Provider und Erzeugung", () => {
     expect((err as MediaError).message).toContain("Kostenobergrenze");
     expect((err as MediaError).usage.generated).toBe(2);
   });
+
+  it("prüft die Obergrenze vor der Erzeugung und überschreitet sie nicht um ein Bild", async () => {
+    const dir = await tmp();
+    let calls = 0;
+    const pricey: MediaProvider = {
+      name: "teuer",
+      type: "image",
+      estimatedCostUsd: 0.4,
+      async generate() {
+        calls += 1;
+        return { data: Buffer.from("x"), type: "image", extension: "png", costUsd: 0.4 };
+      },
+    };
+    const err = await generateMedia({ provider: pricey, script, durations, dir, maxCostUsd: 0.5 }).catch(
+      (e) => e,
+    );
+    expect(err).toBeInstanceOf(MediaError);
+    expect((err as MediaError).message).toContain("Kostenobergrenze");
+    expect(calls).toBe(1);
+    expect((err as MediaError).usage.costUsd).toBeLessThanOrEqual(0.5);
+  });
+
+  it("zählt Kosten früherer Läufe für die Obergrenze mit", async () => {
+    const dir = await tmp();
+    const make = (): MediaProvider & { calls: number } => {
+      const p = {
+        calls: 0,
+        name: "teuer",
+        type: "image" as const,
+        estimatedCostUsd: 0.1,
+        async generate() {
+          p.calls += 1;
+          return { data: Buffer.from("x"), type: "image" as const, extension: "png", costUsd: 0.1 };
+        },
+      };
+      return p;
+    };
+    await generateMedia({ provider: make(), script, durations, dir, maxCostUsd: 0.6 }); // 0,30 USD
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 3 ? { ...s, description: "neu" } : s)),
+    };
+    const p2 = make();
+    // 2 Szenen aus früherem Lauf (0,20) + 0,10 für die neue Szene wären 0,30 > 0,25
+    const err = await generateMedia({ provider: p2, script: changed, durations, dir, maxCostUsd: 0.25 }).catch(
+      (e) => e,
+    );
+    expect(err).toBeInstanceOf(MediaError);
+    expect(p2.calls).toBe(0); // 0,20 + 0,10 > 0,25: nichts wird bezahlt
+    expect((err as MediaError).message).toContain("Kostenobergrenze");
+  });
+
+  it("behält bei Abbruch die Cache-Einträge späterer Szenen aus einem früheren Lauf", async () => {
+    const dir = await tmp();
+    await generateMedia({ provider: createDummyProvider(), script, durations, dir });
+    const before = JSON.parse(await readFile(path.join(dir, "media.json"), "utf8"));
+    const changed: Script = {
+      ...script,
+      scenes: script.scenes.map((s) => (s.id === 1 ? { ...s, description: "anders" } : s)),
+    };
+    const flaky = countingProvider(createDummyProvider(), 1);
+    await expect(generateMedia({ provider: flaky, script: changed, durations, dir })).rejects.toBeInstanceOf(
+      MediaError,
+    );
+    const saved = JSON.parse(await readFile(path.join(dir, "media.json"), "utf8"));
+    expect(saved.scenes.map((s: { sceneId: number }) => s.sceneId)).toEqual([2, 3]);
+    expect(saved.scenes).toEqual(before.scenes.slice(1));
+
+    const ok = countingProvider(createDummyProvider());
+    const res = await generateMedia({ provider: ok, script: changed, durations, dir });
+    expect(ok.calls).toBe(1);
+    expect(res.usage.reused).toBe(2);
+  });
 });
 
 describe("fal-Provider mit gemocktem Client", () => {

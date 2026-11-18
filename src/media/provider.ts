@@ -33,6 +33,8 @@ export interface MediaProvider {
   readonly name: string;
   /** Typ der gelieferten Medien. */
   readonly type: MediaType;
+  /** Geschätzte Kosten (USD) je Erzeugung; ermöglicht die Kostenprüfung vor dem Aufruf. */
+  readonly estimatedCostUsd?: number;
   generate(req: MediaRequest): Promise<MediaResult>;
 }
 
