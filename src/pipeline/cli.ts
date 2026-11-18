@@ -4,41 +4,9 @@ import { createAnthropicClient } from "../script/anthropic-client.ts";
 import { createFfmpegRunner } from "../video/runner.ts";
 import { createOpenAiSpeechClient } from "../voice/client.ts";
 import { createDummyLlmClient, createDummySpeechClient } from "./dummy.ts";
+import { parseArgs, USAGE } from "./args.ts";
 import { assertEnv, resolveMaxCost } from "./env.ts";
 import { runPipeline } from "./run.ts";
-
-const USAGE =
-  "Aufruf: npm run make-video -- [Thema] [--name ausgabename] [--dummy] [--no-music] [--music datei]";
-
-interface Args {
-  topic?: string;
-  name?: string;
-  dummy: boolean;
-  noMusic: boolean;
-  music?: string;
-  help: boolean;
-}
-
-function parseArgs(argv: string[], env: NodeJS.ProcessEnv): Args {
-  const r: Args = {
-    dummy: ["1", "true"].includes((env.PIPELINE_DUMMY ?? "").trim().toLowerCase()),
-    noMusic: false,
-    help: false,
-  };
-  const topic: string[] = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i]!;
-    if (a === "--name") r.name = argv[++i];
-    else if (a === "--dummy") r.dummy = true;
-    else if (a === "--no-music") r.noMusic = true;
-    else if (a === "--music") r.music = argv[++i];
-    else if (a === "--help" || a === "-h") r.help = true;
-    else if (a.startsWith("--")) throw new Error(`Unbekannte Option ${a}. ${USAGE}`);
-    else topic.push(a);
-  }
-  if (topic.length > 0) r.topic = topic.join(" ");
-  return r;
-}
 
 try {
   const args = parseArgs(process.argv.slice(2), process.env);
