@@ -1,0 +1,17 @@
+# name | color | description
+- {name: "role:po", color: "5319e7", description: "Product Owner"}
+- {name: "role:tech-lead", color: "5319e7", description: "Orchestrator / Tech Lead"}
+- {name: "role:dev", color: "5319e7", description: "Developer"}
+- {name: "role:review", color: "5319e7", description: "Reviewer"}
+- {name: "role:test", color: "5319e7", description: "Tester"}
+- {name: "status:ready", color: "0e8a16", description: "Bereit zur Umsetzung"}
+- {name: "status:in-progress", color: "fbca04", description: "In Arbeit"}
+- {name: "status:in-review", color: "1d76db", description: "PR in Review/Test"}
+- {name: "status:blocked", color: "b60205", description: "Blockiert"}
+- {name: "status:merge-ready", color: "0e8a16", description: "Review, Test und CI ok, wartet auf Merge durch Mensch"}
+- {name: "review:ok", color: "0e8a16", description: "Reviewer: APPROVED"}
+- {name: "review:changes", color: "d93f0b", description: "Reviewer: CHANGES REQUESTED"}
+- {name: "type:feature", color: "a2eeef", description: "Neue Funktion"}
+- {name: "type:bug", color: "d73a4a", description: "Fehler"}
+- {name: "type:chore", color: "ededed", description: "Wartung / Infrastruktur"}
+- {name: "type:docs", color: "0075ca", description: "Dokumentation"}

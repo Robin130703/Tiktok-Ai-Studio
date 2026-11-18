@@ -1,0 +1,23 @@
+name: Feature
+description: Neue Funktion oder Aufgabe
+labels: ["type:feature", "role:po"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Was soll erreicht werden und warum?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      description: Checkliste, an der der Tester das Ergebnis prüft.
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Nicht-Ziele
