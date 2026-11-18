@@ -46,6 +46,29 @@ Ohne PAT oder GitHub App starten Kommentare von Agenten keine Folge-Workflows.
 
 ## Branch-Schutz
 
-`main` ist geschützt: PR erforderlich, Status-Checks `agents`, `workflows` und
-`markdown-yaml` müssen grün sein, keine Force-Pushes. Falls GitHub den Schutz für
-dieses Repo nicht erlaubt (privates Repo im Free-Plan), gilt dieselbe Regel als Konvention.
+**Der Branch-Schutz für `main` ist auf GitHub derzeit nicht aktiv.** Das Repo ist
+privat, und GitHub bietet Branch-Schutz nur mit GitHub Pro oder bei einem
+öffentlichen Repo an. Die API antwortet sonst mit 403.
+
+Die folgenden Regeln gelten deshalb als verbindliche Konvention und werden
+technisch nicht erzwungen:
+
+- PR erforderlich, kein direkter Push auf `main`.
+- Status-Checks `agents`, `workflows` und `markdown-yaml` müssen grün sein.
+- Keine Force-Pushes.
+
+Verlasse dich nicht darauf, dass GitHub Verstöße blockiert. Alle Beteiligten
+halten die Regeln selbst ein.
+
+### Schutz aktivieren
+
+Sobald das Repo öffentlich wird oder GitHub Pro vorhanden ist: Settings,
+Branches, Branch protection rule für `main` anlegen (oder ein Ruleset) und
+diese Einstellungen aktivieren:
+
+1. Require a pull request before merging.
+2. Require status checks to pass before merging, mit den Checks `agents`,
+   `workflows` und `markdown-yaml`.
+3. Force-Pushes nicht erlauben (Allow force pushes bleibt aus).
+
+Danach diesen Abschnitt wieder auf den aktiven Schutz umstellen.
