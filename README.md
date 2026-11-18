@@ -22,6 +22,14 @@ Ordnerstruktur: Quellcode und Tests (`*.test.ts`) liegen in `src/`, Ausgaben in
 `output/` (nicht eingecheckt). Für API-Keys `.env.example` nach `.env` kopieren und
 Werte lokal eintragen.
 
+### Hinweis Windows: Vitest und Laufwerksbuchstabe
+
+- **Symptom:** `npm test` bricht unter Windows mit `failed to find the current suite` ab.
+- **Ursache:** Das Projektverzeichnis ist mit kleingeschriebenem Laufwerksbuchstaben
+  geöffnet (`c:/...`). Vitest behandelt `c:/...` und `C:/...` als verschiedene Pfade.
+- **Workaround:** Das Verzeichnis mit großem Laufwerksbuchstaben (`C:/...`) öffnen
+  und Vitest von dort starten. Die CI ist nicht betroffen.
+
 ## Video erzeugen (ein Befehl)
 
 ```sh
